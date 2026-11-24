@@ -352,6 +352,7 @@ function goHome() {
     updateFilterButtons();
     updateSidebarSelection();
     updateMarketplace();
+    updateHomeRecentListings();
 
     closeSidebar();
 
@@ -373,6 +374,7 @@ function openMarketplace() {
     updateFilterButtons();
     updateSidebarSelection();
     updateMarketplace();
+    updateHomeRecentListings();
 
     closeSidebar();
 
@@ -496,6 +498,35 @@ document.getElementById("heroSellButton")
 document.getElementById("emptySellButton")
     .addEventListener("click", openSellingPage);
 
+const homeViewAllButton = document.getElementById("homeViewAllButton");
+if (homeViewAllButton) {
+    homeViewAllButton.addEventListener("click", openMarketplace);
+}
+
+const homeRecentSellButton = document.getElementById("homeRecentSellButton");
+if (homeRecentSellButton) {
+    homeRecentSellButton.addEventListener("click", openSellingPage);
+}
+
+// Connect homepage category navigation cards
+document.querySelectorAll(".home-category-card").forEach(function(card) {
+    card.addEventListener("click", function() {
+        const cat = card.dataset.category;
+        if (cat) {
+            selectCategory(cat);
+        }
+    });
+});
+
+// Connect hero popular search tag pills
+document.querySelectorAll(".hero-tag-pill").forEach(function(pill) {
+    pill.addEventListener("click", function() {
+        const term = pill.dataset.search || pill.textContent.trim();
+        searchInput.value = term;
+        performSearch();
+    });
+});
+
 
 // 11. HEADER HOME LOGO
 
@@ -588,6 +619,7 @@ function selectCategory(category) {
     updateSidebarSelection();
     updateFilterButtons();
     updateMarketplace();
+    updateHomeRecentListings();
 
     closeSidebar();
 
@@ -620,6 +652,7 @@ function performSearch() {
 
     updateSidebarSelection();
     updateMarketplace();
+    updateHomeRecentListings();
 
     showPage(marketplacePage);
 
@@ -650,6 +683,7 @@ document.querySelectorAll(".filter-button")
 
             updateFilterButtons();
             updateMarketplace();
+    updateHomeRecentListings();
 
         });
 
@@ -744,7 +778,7 @@ function createProductCard(product) {
     condition.textContent = product.condition || "Condition not specified";
 
     const tag = document.createElement("span");
-    tag.className = "product-tag";
+    tag.className = "product-tag " + (product.type === "Rent" ? "type-rent" : "type-sale");
     tag.textContent = product.type === "Rent" ? "For rent" : "For sale";
 
     if (product.status && product.status !== "Available") {
@@ -765,7 +799,9 @@ wishlistButton.type = "button";
 
 const isWishlisted = wishlistIds.has(product.id);
 
-wishlistButton.textContent = isWishlisted ? "♥" : "♡";
+wishlistButton.innerHTML = isWishlisted
+    ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>`
+    : `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>`;
 wishlistButton.classList.toggle("active", isWishlisted);
 
 wishlistButton.title = isWishlisted
@@ -925,11 +961,43 @@ document.getElementById("sortSelect")
     .addEventListener("change", updateMarketplace);
 
 
+// ========================================
+// 21B. UPDATE HOMEPAGE RECENT LISTINGS
+// ========================================
+
+function updateHomeRecentListings() {
+    const homeRecentGrid = document.getElementById("homeRecentGrid");
+    const homeRecentEmptyState = document.getElementById("homeRecentEmptyState");
+    if (!homeRecentGrid) return;
+
+    homeRecentGrid.innerHTML = "";
+
+    // Filter available products
+    const availableProducts = products.filter(function (product) {
+        return !product.status || product.status === "Available";
+    });
+
+    if (availableProducts.length === 0) {
+        if (homeRecentEmptyState) homeRecentEmptyState.classList.remove("hidden");
+        return;
+    }
+
+    if (homeRecentEmptyState) homeRecentEmptyState.classList.add("hidden");
+
+    // Display up to 4 most recent available listings on the homepage
+    const recentProducts = availableProducts.slice(0, 4);
+    recentProducts.forEach(function (product) {
+        homeRecentGrid.appendChild(createProductCard(product));
+    });
+}
+
+
 // 22. INITIAL WEBSITE LOAD
 
 updateSidebarSelection();
 updateFilterButtons();
 updateMarketplace();
+updateHomeRecentListings();
 loadCartFromStorage();
 
 console.log("Thriftly is ready.");
@@ -1317,6 +1385,7 @@ onSnapshot(productsCollection, function (snapshot) {
     });
 
     updateMarketplace();
+    updateHomeRecentListings();
 
 }, function (error) {
 
@@ -1473,7 +1542,7 @@ function createFallbackWishlistCard(savedItem) {
     const wishlistBtn = document.createElement("button");
     wishlistBtn.className = "wishlist-button active";
     wishlistBtn.type = "button";
-    wishlistBtn.textContent = "♥";
+    wishlistBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>`;
     wishlistBtn.title = "Remove from wishlist";
     wishlistBtn.addEventListener("click", function (event) {
         event.stopPropagation();
@@ -1582,6 +1651,7 @@ async function toggleWishlist(product) {
         // Refresh badges, marketplace and wishlist view
         updateWishlistBadge();
         updateMarketplace();
+    updateHomeRecentListings();
 
         if (wishlistPage && !wishlistPage.classList.contains("hidden")) {
             renderWishlistPage();
@@ -2634,6 +2704,7 @@ document.getElementById("loginButton").style.display = "none";
 
                 updateWishlistBadge();
                 updateMarketplace();
+    updateHomeRecentListings();
 
                 if (wishlistPage && !wishlistPage.classList.contains("hidden")) {
                     renderWishlistPage();
@@ -2664,6 +2735,7 @@ document.getElementById("loginButton").style.display = "none";
         wishlistMeta.clear();
         updateWishlistBadge();
         updateMarketplace();
+    updateHomeRecentListings();
 
         if (wishlistPage && !wishlistPage.classList.contains("hidden")) {
             renderWishlistPage();
